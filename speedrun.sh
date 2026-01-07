@@ -15,6 +15,15 @@ export OMP_NUM_THREADS=1
 export NANOCHAT_BASE_DIR="$HOME/.cache/nanochat"
 mkdir -p $NANOCHAT_BASE_DIR
 
+# -----------------------------------------------------------------------------
+# Python venv setup with uv
+
+# install uv (if not already installed)
+command -v uv &> /dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
+# create a .venv local virtual environment (if it doesn't exist)
+[ -d ".venv" ] || uv venv
+# install the repo dependencies
+uv sync --extra gpu
 # activate venv so that `python` uses the project's venv instead of system python
 source .venv/bin/activate
 
@@ -36,6 +45,9 @@ fi
 # with a bunch of system info and a timestamp that marks the start of the run.
 python -m nanochat.report reset
 
+# -----------------------------------------------------------------------------
+# Tokenizer
+
 # Download the first ~2B characters of pretraining dataset
 # look at dev/repackage_data_reference.py for details on how this data was prepared
 # each data shard is ~250M chars
@@ -46,8 +58,13 @@ python -m nanochat.dataset -n 8
 # See comment below for why 240 is the right number here
 python -m nanochat.dataset -n 240 &
 DATASET_DOWNLOAD_PID=$!
+
+echo "Memory before tokenizer training:"
+free -h
 # train the tokenizer with vocab size 2**16 = 65536 on ~2B characters of data
 python -m scripts.tok_train --max_chars=2000000000
+echo "Memory after tokenizer training:"
+free -h
 # evaluate the tokenizer (report compression ratio etc.)
 python -m scripts.tok_eval
 
