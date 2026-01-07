@@ -15,6 +15,15 @@ export OMP_NUM_THREADS=1
 export NANOCHAT_BASE_DIR="$HOME/.cache/nanochat"
 mkdir -p $NANOCHAT_BASE_DIR
 
+# -----------------------------------------------------------------------------
+# Python venv setup with uv
+
+# install uv (if not already installed)
+command -v uv &> /dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
+# create a .venv local virtual environment (if it doesn't exist)
+[ -d ".venv" ] || uv venv
+# install the repo dependencies
+uv sync --extra gpu
 # activate venv so that `python` uses the project's venv instead of system python
 source .venv/bin/activate
 
@@ -35,6 +44,9 @@ fi
 # directory in the base dir. This command clears it out and writes a header section
 # with a bunch of system info and a timestamp that marks the start of the run.
 python -m nanochat.report reset
+
+# -----------------------------------------------------------------------------
+# Tokenizer
 
 # Download the first ~2B characters of pretraining dataset
 # look at dev/repackage_data_reference.py for details on how this data was prepared
