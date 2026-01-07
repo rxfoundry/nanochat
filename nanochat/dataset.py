@@ -16,6 +16,9 @@ from multiprocessing import Pool
 
 from nanochat.common import get_base_dir
 
+import logging
+logging.getLogger("httpx").setLevel(logging.ERROR)
+
 # -----------------------------------------------------------------------------
 # The specifics of the current pretraining dataset
 
