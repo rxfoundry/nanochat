@@ -27,46 +27,20 @@ print(f"vocab_size: {args.vocab_size:,}")
 
 def text_iterator():
     """
-    Process in smaller chunks to prevent memory issues
+    1) Flatten the batches into a single iterator
+    2) Crop every document to args.doc_cap characters
+    3) Break when we've seen args.max_chars characters
     """
     nchars = 0
-    batch_count = 0
-    MAX_BATCH_SIZE = 1000  # Process 1000 docs at a time
-
-    batch_buffer = []
-
     for batch in parquets_iter_batched(split="train"):
         for doc in batch:
             doc_text = doc
             if len(doc_text) > args.doc_cap:
                 doc_text = doc_text[:args.doc_cap]
-
-            batch_buffer.append(doc_text)
             nchars += len(doc_text)
-
-            # Process in smaller batches and force garbage collection
-            if len(batch_buffer) >= MAX_BATCH_SIZE:
-                for buffered_doc in batch_buffer:
-                    yield buffered_doc
-                batch_buffer = []
-                batch_count += 1
-
-                # Force garbage collection every 10 batches
-                if batch_count % 10 == 0:
-                    import gc
-                    gc.collect()
-                    print(f"Processed {batch_count * MAX_BATCH_SIZE} documents, {nchars:,} chars")
-
+            yield doc_text
             if nchars > args.max_chars:
-                # Yield remaining buffer
-                for buffered_doc in batch_buffer:
-                    yield buffered_doc
                 return
-
-    # Yield any remaining documents
-    for buffered_doc in batch_buffer:
-        yield buffered_doc
-
 text_iter = text_iterator()
 
 # -----------------------------------------------------------------------------
