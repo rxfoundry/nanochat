@@ -58,9 +58,6 @@ python -m nanochat.dataset -n 8
 # See comment below for why 240 is the right number here
 python -m nanochat.dataset -n 240 &
 DATASET_DOWNLOAD_PID=$!
-
-echo "Memory before tokenizer training:"
-free -h
 # train the tokenizer with vocab size 2**16 = 65536 on ~2B characters of data
 python -m scripts.tok_train --max_chars=2000000000 --vocab_size=65536
 # evaluate the tokenizer (report compression ratio etc.)
