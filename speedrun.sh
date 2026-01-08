@@ -84,7 +84,7 @@ wait $DATASET_DOWNLOAD_PID
 NPROC_PER_NODE=1
 
 # pretrain the d20 model
-torchrun --standalone --nproc_per_node=$NPROC_PER_NODE -m scripts.base_train -- --depth=20 --run=$WANDB_RUN
+torchrun --standalone --nproc_per_node=$NPROC_PER_NODE -m scripts.base_train -- --depth=20 --run=$WANDB_RUN --device_batch_size=2
 # evaluate the model on a larger chunk of train/val data and draw some samples
 torchrun --standalone --nproc_per_node=$NPROC_PER_NODE -m scripts.base_loss
 # evaluate the model on CORE tasks
