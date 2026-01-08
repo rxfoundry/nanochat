@@ -62,9 +62,7 @@ DATASET_DOWNLOAD_PID=$!
 echo "Memory before tokenizer training:"
 free -h
 # train the tokenizer with vocab size 2**16 = 65536 on ~2B characters of data
-python -m scripts.tok_train --max_chars=2000000000
-echo "Memory after tokenizer training:"
-free -h
+python -m scripts.tok_train --max_chars=2000000000 --vocab_size=65536
 # evaluate the tokenizer (report compression ratio etc.)
 python -m scripts.tok_eval
 
@@ -84,7 +82,7 @@ wait $DATASET_DOWNLOAD_PID
 NPROC_PER_NODE=1
 
 # pretrain the d20 model
-torchrun --standalone --nproc_per_node=$NPROC_PER_NODE -m scripts.base_train -- --depth=20 --run=$WANDB_RUN --device_batch_size=2
+torchrun --standalone --nproc_per_node=$NPROC_PER_NODE -m scripts.base_train -- --depth=20 --target_param_data_ratio=20 --device_batch_size=2 --run=$WANDB_RUN
 # evaluate the model on a larger chunk of train/val data and draw some samples
 torchrun --standalone --nproc_per_node=$NPROC_PER_NODE -m scripts.base_loss
 # evaluate the model on CORE tasks
