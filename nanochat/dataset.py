@@ -10,8 +10,9 @@ For details of how the dataset was prepared, see `repackage_data_reference.py`.
 import os
 import argparse
 import requests
-import pyarrow.fs as fs
-import pyarrow.parquet as pq
+import pandas as pd
+# import pyarrow.fs as fs
+# import pyarrow.parquet as pq
 from multiprocessing import Pool
 
 from nanochat.common import get_base_dir
@@ -54,13 +55,25 @@ def parquets_iter_batched(split, start=0, step=1):
     parquet_paths = parquet_paths[:-1] if split == "train" else parquet_paths[-1:]
     for filepath in parquet_paths:
         try:
-            pf = pq.ParquetFile(filepath)
-            for rg_idx in range(start, pf.num_row_groups, step):
-                rg = pf.read_row_group(rg_idx)
-                texts = rg.column('text').to_pylist()
+            # Read entire parquet file with pandas
+            df = pd.read_parquet(filepath)
+
+            # Calculate chunk size to approximate row_groups behavior
+            chunk_size = 1024  # approximate row_group size
+            total_rows = len(df)
+
+            # Iterate through chunks with DDP-style distribution
+            for chunk_start in range(start * chunk_size, total_rows, step * chunk_size):
+                chunk_end = min(chunk_start + chunk_size, total_rows)
+                if chunk_start >= total_rows:
+                    break
+
+                chunk_df = df.iloc[chunk_start:chunk_end]
+                texts = chunk_df['text'].tolist()
                 yield texts
         except Exception as e:
             print(f"Error reading {filepath}: {e}")
+
 
 # -----------------------------------------------------------------------------
 def download_single_file(index):
@@ -78,11 +91,28 @@ def download_single_file(index):
     print(f"Downloading {filename}...")
 
     try:
-        # pyarrow.fs uses huggingface_hub with builtin exponential backoff
-        fs.copy_files(uri, filepath)
-        print(f"Successfully downloaded {filename}")
-        return True
-    except (requests.RequestException, IOError) as e:
+        # Use requests with retries instead of pyarrow.fs
+        import time
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(uri, timeout=300)
+                response.raise_for_status()
+
+                with open(filepath, 'wb') as f:
+                    f.write(response.content)
+
+                print(f"Successfully downloaded {filename}")
+                return True
+            except requests.RequestException as e:
+                if attempt < max_retries - 1:
+                    wait_time = 2 ** attempt
+                    print(f"Download attempt {attempt + 1} failed, retrying in {wait_time}s: {e}")
+                    time.sleep(wait_time)
+                else:
+                    print(f"Failed to download {filename} after {max_retries} attempts: {e}")
+                    return False
+    except Exception as e:
         print(f"Failed to download {filename}: {e}")
         return False
 
