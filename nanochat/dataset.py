@@ -56,7 +56,7 @@ def parquets_iter_batched(split, start=0, step=1):
     for filepath in parquet_paths:
         try:
             # Read entire parquet file with pandas
-            df = pd.read_parquet(filepath)
+            pf = pd.read_parquet(filepath, engine='fastparquet')
 
             # Calculate chunk size to approximate row_groups behavior
             chunk_size = 1024  # approximate row_group size

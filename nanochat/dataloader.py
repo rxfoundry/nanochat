@@ -40,7 +40,7 @@ def tokenizing_distributed_data_loader_with_state(B, T, split, tokenizer_threads
                 filepath = parquet_paths[pq_idx]
                 try:
                     # Read entire parquet file with pandas
-                    df = pd.read_parquet(filepath)
+                    df = pd.read_parquet(filepath, engine='fastparquet')
 
                     # Calculate chunk size to approximate row_groups behavior
                     chunk_size = 1024  # approximate row_group size
