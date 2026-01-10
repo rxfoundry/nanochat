@@ -59,7 +59,7 @@ def parquets_iter_batched(split, start=0, step=1):
 
             # Calculate chunk size to approximate row_groups behavior
             chunk_size = 1024  # approximate row_group size
-            total_rows = len(df)
+            total_rows = len(pf)
 
             # Iterate through chunks with DDP-style distribution
             for chunk_start in range(start * chunk_size, total_rows, step * chunk_size):
@@ -67,7 +67,7 @@ def parquets_iter_batched(split, start=0, step=1):
                 if chunk_start >= total_rows:
                     break
 
-                chunk_df = df.iloc[chunk_start:chunk_end]
+                chunk_df = pf.iloc[chunk_start:chunk_end]
                 texts = chunk_df['text'].tolist()
                 yield texts
         except Exception as e:
