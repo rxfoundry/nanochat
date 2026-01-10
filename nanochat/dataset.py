@@ -97,8 +97,7 @@ def download_single_file(index):
             repo_id=repo_id,
             filename=filename,
             repo_type="dataset",
-            local_dir=DATA_DIR,
-            local_dir_use_symlinks=False,  # Don't use symlinks, copy the actual file
+            local_dir=DATA_DIR
         )
 
         print(f"Successfully downloaded {filename}")
