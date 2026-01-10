@@ -25,6 +25,27 @@ print(f"vocab_size: {args.vocab_size:,}")
 # -----------------------------------------------------------------------------
 # Text iterator
 
+def clean_text(text):
+    """Clean text to avoid character boundary issues"""
+    try:
+        # Remove or replace problematic characters
+        # Normalize Unicode to decomposed form, then recompose
+        text = unicodedata.normalize('NFKC', text)
+
+        # Remove non-printable characters except common whitespace
+        text = ''.join(char for char in text
+                       if unicodedata.category(char) != 'Cc' or char in '\n\t\r ')
+
+        # Replace multiple whitespace with single space
+        text = re.sub(r'\s+', ' ', text)
+
+        # Ensure it's valid UTF-8
+        text = text.encode('utf-8', errors='ignore').decode('utf-8')
+
+        return text.strip()
+    except Exception:
+        return ""
+
 def text_iterator():
     """
     1) Flatten the batches into a single iterator
@@ -32,29 +53,32 @@ def text_iterator():
     3) Break when we've seen args.max_chars characters
     """
     nchars = 0
+    skipped_docs = 0
+
     for batch in parquets_iter_batched(split="train"):
         for doc in batch:
-            doc_text = doc
-            # Clean the text to avoid character boundary issues
             try:
-                # Ensure valid UTF-8 encoding
-                doc_text = doc_text.encode('utf-8', errors='ignore').decode('utf-8')
+                doc_text = clean_text(doc)
+
+                if not doc_text or len(doc_text) < 10:  # Skip very short docs
+                    skipped_docs += 1
+                    continue
 
                 if len(doc_text) > args.doc_cap:
-                    # Use character-safe truncation instead of byte truncation
                     doc_text = doc_text[:args.doc_cap]
-
-                # Skip empty documents
-                if not doc_text.strip():
-                    continue
 
                 nchars += len(doc_text)
                 yield doc_text
+
                 if nchars > args.max_chars:
+                    print(f"Processed {nchars:,} characters, skipped {skipped_docs} documents")
                     return
+
             except Exception as e:
+                skipped_docs += 1
                 print(f"Skipping problematic document: {e}")
                 continue
+
 text_iter = text_iterator()
 
 # -----------------------------------------------------------------------------
