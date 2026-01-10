@@ -35,12 +35,26 @@ def text_iterator():
     for batch in parquets_iter_batched(split="train"):
         for doc in batch:
             doc_text = doc
-            if len(doc_text) > args.doc_cap:
-                doc_text = doc_text[:args.doc_cap]
-            nchars += len(doc_text)
-            yield doc_text
-            if nchars > args.max_chars:
-                return
+            # Clean the text to avoid character boundary issues
+            try:
+                # Ensure valid UTF-8 encoding
+                doc_text = doc_text.encode('utf-8', errors='ignore').decode('utf-8')
+
+                if len(doc_text) > args.doc_cap:
+                    # Use character-safe truncation instead of byte truncation
+                    doc_text = doc_text[:args.doc_cap]
+
+                # Skip empty documents
+                if not doc_text.strip():
+                    continue
+
+                nchars += len(doc_text)
+                yield doc_text
+                if nchars > args.max_chars:
+                    return
+            except Exception as e:
+                print(f"Skipping problematic document: {e}")
+                continue
 text_iter = text_iterator()
 
 # -----------------------------------------------------------------------------
