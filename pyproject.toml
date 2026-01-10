@@ -8,6 +8,7 @@ dependencies = [
     "datasets>=4.0.0",
     "fastapi>=0.117.1",
     "fastparquet>=2024.5.0",
+    "huggingface_hub>=0.26.0",
     "ipykernel>=7.1.0",
     "matplotlib>=3.10.8",
     "pandas>=2.0.0",

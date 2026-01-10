@@ -11,9 +11,8 @@ import os
 import argparse
 import requests
 import pandas as pd
-# import pyarrow.fs as fs
-# import pyarrow.parquet as pq
 from multiprocessing import Pool
+from huggingface_hub import hf_hub_download
 
 from nanochat.common import get_base_dir
 
@@ -86,33 +85,25 @@ def download_single_file(index):
         print(f"Skipping {filepath} (already exists)")
         return True
 
-    # Construct the remote URL for this file
-    uri = f"{BASE_URI}/{filename}"
     print(f"Downloading {filename}...")
 
     try:
-        # Use requests with retries instead of pyarrow.fs
-        import time
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                response = requests.get(uri, timeout=300)
-                response.raise_for_status()
+        # Use hf_hub_download instead of pyarrow.fs
+        # Parse the repo_id from BASE_URI: "hf://datasets/karpathy/fineweb-edu-100b-shuffle"
+        repo_id = BASE_URI.replace("hf://datasets/", "")
 
-                with open(filepath, 'wb') as f:
-                    f.write(response.content)
+        # Download using hf_hub_download
+        downloaded_path = hf_hub_download(
+            repo_id=repo_id,
+            filename=filename,
+            repo_type="dataset",
+            local_dir=DATA_DIR,
+            local_dir_use_symlinks=False,  # Don't use symlinks, copy the actual file
+        )
 
-                print(f"Successfully downloaded {filename}")
-                return True
-            except requests.RequestException as e:
-                if attempt < max_retries - 1:
-                    wait_time = 2 ** attempt
-                    print(f"Download attempt {attempt + 1} failed, retrying in {wait_time}s: {e}")
-                    time.sleep(wait_time)
-                else:
-                    print(f"Failed to download {filename} after {max_retries} attempts: {e}")
-                    return False
-    except Exception as e:
+        print(f"Successfully downloaded {filename}")
+        return True
+    except (requests.RequestException, IOError) as e:
         print(f"Failed to download {filename}: {e}")
         return False
 
