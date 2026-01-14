@@ -10,6 +10,7 @@ dependencies = [
     "fastparquet>=2024.5.0",
     "huggingface_hub>=0.26.0",
     "ipykernel>=7.1.0",
+    "kernels>=0.11.7",
     "matplotlib>=3.10.8",
     "pandas>=2.0.0",
     "pandas-stubs~=2.3.2",

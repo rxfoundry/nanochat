@@ -58,7 +58,8 @@ def text_iterator():
     for batch in parquets_iter_batched(split="train"):
         for doc in batch:
             try:
-                doc_text = clean_text(doc)
+                # doc_text = clean_text(doc)
+                doc_text = doc
 
                 if not doc_text or len(doc_text) < 10:  # Skip very short docs
                     skipped_docs += 1
