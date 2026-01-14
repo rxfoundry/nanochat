@@ -70,7 +70,7 @@ def _document_batches(split, resume_state_dict, tokenizer_batch_size):
                 rg_idx = ddp_rank
             while rg_idx < row_groups:
                 rg = pf.row_groups[rg_idx]
-                batch = rg.column('text').to_pylist()
+                batch = rg["text"]
                 for i in range(0, len(batch), tokenizer_batch_size):
                     yield batch[i:i+tokenizer_batch_size], (pq_idx, rg_idx, epoch)
                 rg_idx += ddp_world_size
