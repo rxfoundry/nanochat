@@ -202,7 +202,6 @@ optimizers = model.setup_optimizers(
     matrix_lr=args.matrix_lr * batch_lr_scale,
     weight_decay=weight_decay_scaled,
     adam_betas=adam_betas,
-    scalar_lr=args.scalar_lr * batch_lr_scale,
 )
 adamw_optimizer, muon_optimizer = optimizers
 
