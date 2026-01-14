@@ -13,6 +13,7 @@ import requests
 import pandas as pd
 from multiprocessing import Pool
 from huggingface_hub import hf_hub_download
+from fastparquet import ParquetFile
 
 from nanochat.common import get_base_dir
 
@@ -54,21 +55,10 @@ def parquets_iter_batched(split, start=0, step=1):
     parquet_paths = parquet_paths[:-1] if split == "train" else parquet_paths[-1:]
     for filepath in parquet_paths:
         try:
-            # Read entire parquet file with pandas
-            pf = pd.read_parquet(filepath, engine='fastparquet')
-
-            # Calculate chunk size to approximate row_groups behavior
-            chunk_size = 1024  # approximate row_group size
-            total_rows = len(pf)
-
-            # Iterate through chunks with DDP-style distribution
-            for chunk_start in range(start * chunk_size, total_rows, step * chunk_size):
-                chunk_end = min(chunk_start + chunk_size, total_rows)
-                if chunk_start >= total_rows:
-                    break
-
-                chunk_df = pf.iloc[chunk_start:chunk_end]
-                texts = chunk_df['text'].tolist()
+            pf = ParquetFile(filepath)
+            row_groups = pf.iter_row_groups()
+            for rg in row_groups:
+                texts = rg['text']
                 yield texts
         except Exception as e:
             print(f"Error reading {filepath}: {e}")

@@ -24,28 +24,6 @@ print(f"vocab_size: {args.vocab_size:,}")
 
 # -----------------------------------------------------------------------------
 # Text iterator
-
-def clean_text(text):
-    """Clean text to avoid character boundary issues"""
-    try:
-        # Remove or replace problematic characters
-        # Normalize Unicode to decomposed form, then recompose
-        text = unicodedata.normalize('NFKC', text)
-
-        # Remove non-printable characters except common whitespace
-        text = ''.join(char for char in text
-                       if unicodedata.category(char) != 'Cc' or char in '\n\t\r ')
-
-        # Replace multiple whitespace with single space
-        text = re.sub(r'\s+', ' ', text)
-
-        # Ensure it's valid UTF-8
-        text = text.encode('utf-8', errors='ignore').decode('utf-8')
-
-        return text.strip()
-    except Exception:
-        return ""
-
 def text_iterator():
     """
     1) Flatten the batches into a single iterator
