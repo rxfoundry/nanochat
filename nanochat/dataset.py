@@ -44,6 +44,9 @@ def list_parquet_files(data_dir=None):
     parquet_paths = [os.path.join(data_dir, f) for f in parquet_files]
     return parquet_paths
 
+def readonly_opener(path, mode='rb'):
+    return open(path, 'rb')
+
 def parquets_iter_batched(split, start=0, step=1):
     """
     Iterate through the dataset, in batches of underlying row_groups for efficiency.
@@ -55,7 +58,7 @@ def parquets_iter_batched(split, start=0, step=1):
     parquet_paths = parquet_paths[:-1] if split == "train" else parquet_paths[-1:]
     for filepath in parquet_paths:
         try:
-            pf = ParquetFile(filepath)
+            pf = ParquetFile(filepath, open_with=readonly_opener)
             row_groups = pf.iter_row_groups()
             for rg in row_groups:
                 texts = rg['text']
@@ -91,6 +94,8 @@ def download_single_file(index):
         )
 
         print(f"Successfully downloaded {filename}")
+        # ensure read-only
+        os.chmod(downloaded_path, 0o444)
         return True
     except (requests.RequestException, IOError) as e:
         print(f"Failed to download {filename}: {e}")
