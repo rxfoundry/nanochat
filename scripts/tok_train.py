@@ -31,32 +31,15 @@ def text_iterator():
     3) Break when we've seen args.max_chars characters
     """
     nchars = 0
-    skipped_docs = 0
-
     for batch in parquets_iter_batched(split="train"):
         for doc in batch:
-            try:
-                # doc_text = clean_text(doc)
-                doc_text = doc
-
-                if not doc_text or len(doc_text) < 10:  # Skip very short docs
-                    skipped_docs += 1
-                    continue
-
-                if len(doc_text) > args.doc_cap:
-                    doc_text = doc_text[:args.doc_cap]
-
-                nchars += len(doc_text)
-                yield doc_text
-
-                if nchars > args.max_chars:
-                    print(f"Processed {nchars:,} characters, skipped {skipped_docs} documents")
-                    return
-
-            except Exception as e:
-                skipped_docs += 1
-                print(f"Skipping problematic document: {e}")
-                continue
+            doc_text = doc
+            if len(doc_text) > args.doc_cap:
+                doc_text = doc_text[:args.doc_cap]
+            nchars += len(doc_text)
+            yield doc_text
+            if nchars > args.max_chars:
+                return
 
 text_iter = text_iterator()
 
