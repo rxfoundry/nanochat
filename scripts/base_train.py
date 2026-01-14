@@ -87,6 +87,7 @@ use_dummy_wandb = args.run == "dummy" or not master_process
 wandb_run = DummyWandb() if use_dummy_wandb else wandb.init(project="nanochat", name=args.run, config=user_config)
 
 # Tokenizer will be useful for evaluation, also we need the vocab size
+print0("Initializing tokenizer...")
 tokenizer = get_tokenizer()
 token_bytes = get_token_bytes(device=device)
 vocab_size = tokenizer.get_vocab_size()
@@ -140,12 +141,16 @@ if args.depth != 12:
 # Initialize the Model
 
 # Create a new model with random weights
+print0("Initializing model...")
+print0("Loading configuration")
 model_config_kwargs = dict(sequence_len=args.max_seq_len, vocab_size=vocab_size, n_layer=num_layers, n_head=num_heads, n_kv_head=num_kv_heads, n_embd=model_dim, window_pattern=args.window_pattern)
 with torch.device("meta"):
     # All tensors are created as meta tensors (they have shape/dtype but no data)
     model_config = GPTConfig(**model_config_kwargs)
     model = GPT(model_config)
+print0("Creating tensor space")
 model.to_empty(device=device) # All tensors get storage on target device but with uninitialized (garbage) data
+print0("Initializing weights")
 model.init_weights() # All tensors get initialized
 
 # If we are resuming, overwrite the model parameters with those of the checkpoint
