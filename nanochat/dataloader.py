@@ -23,6 +23,8 @@ Fallback to (1) if you have very limited data AND long documents.
 
 import torch
 import pandas as pd
+from fastparquet import ParquetFile
+
 # import pyarrow.parquet as pq
 
 from nanochat.common import get_dist_info
@@ -53,20 +55,21 @@ def _document_batches(split, resume_state_dict, tokenizer_batch_size):
         pq_idx = resume_pq_idx if first_pass else 0
         while pq_idx < len(parquet_paths):
             filepath = parquet_paths[pq_idx]
-            pf = pq.ParquetFile(filepath)
+            pf = ParquetFile(filepath)
+            row_groups = pf.info["row_groups"]
             # Start from resume point if resuming on same file, otherwise from DDP rank
             if first_pass and (resume_rg_idx is not None) and (pq_idx == resume_pq_idx):
                 base_idx = resume_rg_idx // ddp_world_size
                 base_idx += 1  # advance by 1 so we don't repeat data after resuming
                 rg_idx = base_idx * ddp_world_size + ddp_rank
-                if rg_idx >= pf.num_row_groups:
+                if rg_idx >= row_groups:
                     pq_idx += 1
                     continue
                 resume_rg_idx = None  # only do this once
             else:
                 rg_idx = ddp_rank
-            while rg_idx < pf.num_row_groups:
-                rg = pf.read_row_group(rg_idx)
+            while rg_idx < row_groups:
+                rg = pf.row_groups[rg_idx]
                 batch = rg.column('text').to_pylist()
                 for i in range(0, len(batch), tokenizer_batch_size):
                     yield batch[i:i+tokenizer_batch_size], (pq_idx, rg_idx, epoch)
