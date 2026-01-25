@@ -82,6 +82,8 @@ python -m scripts.tok_eval
 
 # Number of processes/GPUs to use
 NPROC_PER_NODE=1
+# Unset distributed environment variables to force single-process mode
+unset RANK LOCAL_RANK WORLD_SIZE
 
 # pretrain the d20 model
 torchrun --standalone --nproc_per_node=$NPROC_PER_NODE -m scripts.base_train -- --depth=20 --target-param-data-ratio=20 --device-batch-size=1 --save-every=500 --window-pattern=L --run=$WANDB_RUN
