@@ -9,18 +9,22 @@ For details of how the dataset was prepared, see `repackage_data_reference.py`.
 
 import os
 import argparse
-import time
 import requests
-import pyarrow.parquet as pq
+import pandas as pd
 from multiprocessing import Pool
+from huggingface_hub import hf_hub_download
+from fastparquet import ParquetFile
 
 from nanochat.common import get_base_dir
+
+import logging
+logging.getLogger("httpx").setLevel(logging.ERROR)
 
 # -----------------------------------------------------------------------------
 # The specifics of the current pretraining dataset
 
-# The URL on the internet where the data is hosted and downloaded from on demand
-BASE_URL = "https://huggingface.co/datasets/karpathy/fineweb-edu-100b-shuffle/resolve/main"
+# The URI on the internet where the data is hosted and downloaded from on demand
+BASE_URI = "hf://datasets/karpathy/fineweb-edu-100b-shuffle"
 MAX_SHARD = 1822 # the last datashard is shard_01822.parquet
 index_to_filename = lambda index: f"shard_{index:05d}.parquet" # format of the filenames
 base_dir = get_base_dir()
@@ -40,6 +44,9 @@ def list_parquet_files(data_dir=None):
     parquet_paths = [os.path.join(data_dir, f) for f in parquet_files]
     return parquet_paths
 
+def readonly_opener(path, mode='rb'):
+    return open(path, 'rb')
+
 def parquets_iter_batched(split, start=0, step=1):
     """
     Iterate through the dataset, in batches of underlying row_groups for efficiency.
@@ -50,11 +57,15 @@ def parquets_iter_batched(split, start=0, step=1):
     parquet_paths = list_parquet_files()
     parquet_paths = parquet_paths[:-1] if split == "train" else parquet_paths[-1:]
     for filepath in parquet_paths:
-        pf = pq.ParquetFile(filepath)
-        for rg_idx in range(start, pf.num_row_groups, step):
-            rg = pf.read_row_group(rg_idx)
-            texts = rg.column('text').to_pylist()
-            yield texts
+        try:
+            pf = ParquetFile(filepath, open_with=readonly_opener)
+            row_groups = pf.iter_row_groups()
+            for rg in row_groups:
+                texts = rg['text']
+                yield texts
+        except Exception as e:
+            print(f"Error reading {filepath}: {e}")
+
 
 # -----------------------------------------------------------------------------
 def download_single_file(index):
@@ -67,47 +78,28 @@ def download_single_file(index):
         print(f"Skipping {filepath} (already exists)")
         return True
 
-    # Construct the remote URL for this file
-    url = f"{BASE_URL}/{filename}"
     print(f"Downloading {filename}...")
 
-    # Download with retries
-    max_attempts = 5
-    for attempt in range(1, max_attempts + 1):
-        try:
-            response = requests.get(url, stream=True, timeout=30)
-            response.raise_for_status()
-            # Write to temporary file first
-            temp_path = filepath + f".tmp"
-            with open(temp_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=1024 * 1024):  # 1MB chunks
-                    if chunk:
-                        f.write(chunk)
-            # Move temp file to final location
-            os.rename(temp_path, filepath)
-            print(f"Successfully downloaded {filename}")
-            return True
+    try:
+        # Use hf_hub_download instead of pyarrow.fs
+        # Parse the repo_id from BASE_URI: "hf://datasets/karpathy/fineweb-edu-100b-shuffle"
+        repo_id = BASE_URI.replace("hf://datasets/", "")
 
-        except (requests.RequestException, IOError) as e:
-            print(f"Attempt {attempt}/{max_attempts} failed for {filename}: {e}")
-            # Clean up any partial files
-            for path in [filepath + f".tmp", filepath]:
-                if os.path.exists(path):
-                    try:
-                        os.remove(path)
-                    except:
-                        pass
-            # Try a few times with exponential backoff: 2^attempt seconds
-            if attempt < max_attempts:
-                wait_time = 2 ** attempt
-                print(f"Waiting {wait_time} seconds before retry...")
-                time.sleep(wait_time)
-            else:
-                print(f"Failed to download {filename} after {max_attempts} attempts")
-                return False
+        # Download using hf_hub_download
+        downloaded_path = hf_hub_download(
+            repo_id=repo_id,
+            filename=filename,
+            repo_type="dataset",
+            local_dir=DATA_DIR
+        )
 
-    return False
-
+        print(f"Successfully downloaded {filename}")
+        # ensure read-only
+        os.chmod(downloaded_path, 0o444)
+        return True
+    except (requests.RequestException, IOError) as e:
+        print(f"Failed to download {filename}: {e}")
+        return False
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Download FineWeb-Edu 100BT dataset shards")
