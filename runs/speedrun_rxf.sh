@@ -56,7 +56,7 @@ python -m nanochat.report reset
 # each data shard is ~250M chars
 # so we download 2e9 / 250e6 = 8 data shards at this point
 # each shard is ~100MB of text (compressed), so this is about ~800MB of data on disk
-python -m nanochat.dataset_rxf -n 370 -w 2
+python -m nanochat.dataset_rxf -n 370 -w 8
 # Immediately also kick off downloading more shards in the background while tokenizer trains
 # See comment below for why 370 is the right number here
 # python -m nanochat.dataset -n 370 &

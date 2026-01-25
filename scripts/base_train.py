@@ -219,16 +219,21 @@ optimizers = model.setup_optimizers(
 adamw_optimizer, muon_optimizer = optimizers
 print0(f"Initialized optimizers: AdamW for embedding and lm_head, Muon for Linear layers")
 if resuming:
+    print0(f"Resuming training from checkpoint")
     for opt, dat in zip(optimizers, optimizer_data):
         opt.load_state_dict(dat)
     del optimizer_data # free up the memory
+else:
+    print0(f"Initializing training from scratch")
 
 # -----------------------------------------------------------------------------
 # Initialize the DataLoaders for train/val
+print0(f"Initializing train/val dataloaders")
 dataloader_resume_state_dict = None if not resuming else meta_data["dataloader_state_dict"]
 train_loader = tokenizing_distributed_data_loader_with_state_bos_bestfit(tokenizer, args.device_batch_size, args.max_seq_len, split="train", device=device, resume_state_dict=dataloader_resume_state_dict)
 build_val_loader = lambda: tokenizing_distributed_data_loader_bos_bestfit(tokenizer, args.device_batch_size, args.max_seq_len, split="val", device=device)
 x, y, dataloader_state_dict = next(train_loader) # kick off load of the very first batch of data
+print0(f"Initialized train/val dataloaders")
 
 # -----------------------------------------------------------------------------
 # Set up hyperparameter schedulers
@@ -274,6 +279,7 @@ else:
 
 # -----------------------------------------------------------------------------
 # Training loop
+print0(f"Starting training loop")
 while True:
     last_step = step == num_iterations # loop runs num_iterations+1 times so that we can eval/save at the end
     flops_so_far = num_flops_per_token * args.total_batch_size * step
