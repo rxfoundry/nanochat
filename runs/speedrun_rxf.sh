@@ -56,7 +56,7 @@ python -m nanochat.report reset
 # each data shard is ~250M chars
 # so we download 2e9 / 250e6 = 8 data shards at this point
 # each shard is ~100MB of text (compressed), so this is about ~800MB of data on disk
-python -m nanochat.dataset_rxf -n 370 -w 4
+python -m nanochat.dataset_rxf -n 370 -w 2
 # Immediately also kick off downloading more shards in the background while tokenizer trains
 # See comment below for why 370 is the right number here
 # python -m nanochat.dataset -n 370 &
@@ -68,7 +68,6 @@ python -m scripts.tok_eval
 
 # -----------------------------------------------------------------------------
 # Base model (pretraining)
-
 # The d20 model is 561M parameters.
 # Chinchilla says #tokens = 20X #params, so we need 561e6 * 20 = 11.2B tokens.
 # Assume our tokenizer is 4.8 chars/token, this is 11.2B * 4.8 ~= 54B chars.
