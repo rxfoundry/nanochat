@@ -8,7 +8,7 @@ import argparse
 import torch
 from nanochat.tokenizer import RustBPETokenizer
 from nanochat.common import get_base_dir
-from nanochat.dataset import parquets_iter_batched
+from nanochat.dataset_rxf import parquets_iter_batched
 
 # -----------------------------------------------------------------------------
 # Parse command line arguments
@@ -24,7 +24,6 @@ print(f"vocab_size: {args.vocab_size:,}")
 
 # -----------------------------------------------------------------------------
 # Text iterator
-
 def text_iterator():
     """
     1) Flatten the batches into a single iterator
@@ -34,13 +33,42 @@ def text_iterator():
     nchars = 0
     for batch in parquets_iter_batched(split="train"):
         for doc in batch:
-            doc_text = doc
+            # Ensure valid UTF-8 and handle encoding errors
+            if isinstance(doc, bytes):
+                doc_text = doc.decode('utf-8', errors='ignore')
+            else:
+                doc_text = str(doc)
+
+            # Additional validation: ensure the string is properly formed
+            try:
+                # This will raise an exception if there are encoding issues
+                doc_text.encode('utf-8').decode('utf-8')
+            except (UnicodeDecodeError, UnicodeEncodeError):
+                print(f"Skipping malformed document: {doc_text[:100]}...")
+                continue
+
             if len(doc_text) > args.doc_cap:
+                # Be extra careful when slicing - ensure we don't break UTF-8
                 doc_text = doc_text[:args.doc_cap]
+                # Verify the slice didn't break UTF-8 encoding
+                try:
+                    doc_text.encode('utf-8')
+                except UnicodeEncodeError:
+                    # If slicing broke UTF-8, find a safe boundary
+                    safe_cap = args.doc_cap
+                    while safe_cap > 0:
+                        try:
+                            doc_text[:safe_cap].encode('utf-8')
+                            doc_text = doc_text[:safe_cap]
+                            break
+                        except UnicodeEncodeError:
+                            safe_cap -= 1
+
             nchars += len(doc_text)
             yield doc_text
             if nchars > args.max_chars:
                 return
+
 text_iter = text_iterator()
 
 # -----------------------------------------------------------------------------
