@@ -217,7 +217,7 @@ optimizers = model.setup_optimizers(
     scalar_lr=args.scalar_lr * batch_lr_scale,
 )
 adamw_optimizer, muon_optimizer = optimizers
-
+print0(f"Initialized optimizers: AdamW for embedding and lm_head, Muon for Linear layers")
 if resuming:
     for opt, dat in zip(optimizers, optimizer_data):
         opt.load_state_dict(dat)
