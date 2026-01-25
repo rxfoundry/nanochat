@@ -266,6 +266,8 @@ def get_peak_flops(device_name: str) -> float:
     # --- Consumer RTX (for hobbyists) ---
     if "5090" in name:
         return 209.5e12
+    if "5080" in name:
+        return 112.6e12
     if "4090" in name:
         return 165.2e12
     if "3090" in name:
