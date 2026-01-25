@@ -22,10 +22,7 @@ Fallback to (1) if you have very limited data AND long documents.
 """
 
 import torch
-import pandas as pd
-from fastparquet import ParquetFile
-
-# import pyarrow.parquet as pq
+import pyarrow.parquet as pq
 
 from nanochat.common import get_dist_info
 from nanochat.dataset import list_parquet_files
@@ -55,25 +52,23 @@ def _document_batches(split, resume_state_dict, tokenizer_batch_size):
         pq_idx = resume_pq_idx if first_pass else 0
         while pq_idx < len(parquet_paths):
             filepath = parquet_paths[pq_idx]
-            pf = ParquetFile(filepath)
-            row_groups = pf.info["row_groups"]
+            pf = pq.ParquetFile(filepath)
             # Start from resume point if resuming on same file, otherwise from DDP rank
             if first_pass and (resume_rg_idx is not None) and (pq_idx == resume_pq_idx):
                 base_idx = resume_rg_idx // ddp_world_size
                 base_idx += 1  # advance by 1 so we don't repeat data after resuming
                 rg_idx = base_idx * ddp_world_size + ddp_rank
-                if rg_idx >= row_groups:
+                if rg_idx >= pf.num_row_groups:
                     pq_idx += 1
                     continue
                 resume_rg_idx = None  # only do this once
             else:
                 rg_idx = ddp_rank
-            while rg_idx < row_groups:
-                rg = pf.row_groups[rg_idx]
-                batch = rg['text']
-                if batch:
-                    for i in range(0, len(batch), tokenizer_batch_size):
-                        yield batch[i:i+tokenizer_batch_size], (pq_idx, rg_idx, epoch)
+            while rg_idx < pf.num_row_groups:
+                rg = pf.read_row_group(rg_idx)
+                batch = rg.column('text').to_pylist()
+                for i in range(0, len(batch), tokenizer_batch_size):
+                    yield batch[i:i+tokenizer_batch_size], (pq_idx, rg_idx, epoch)
                 rg_idx += ddp_world_size
             pq_idx += 1
         first_pass = False
@@ -183,8 +178,9 @@ def tokenizing_distributed_data_loader_with_state_bos_bestfit(
                     doc = doc_buffer.pop(best_idx)
                     row.extend(doc)
                 else:
-                    # No doc fits - crop first doc to fill remaining
-                    doc = doc_buffer.pop(0)
+                    # No doc fits - crop shortest in buffer to fill remaining and minimize waste
+                    shortest_idx = min(range(len(doc_buffer)), key=lambda i: len(doc_buffer[i]))
+                    doc = doc_buffer.pop(shortest_idx)
                     row.extend(doc[:remaining])
 
             rows.append(row[:row_capacity])
