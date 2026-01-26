@@ -15,7 +15,7 @@ export OMP_NUM_THREADS=1
 export NANOCHAT_BASE_DIR="$HOME/.cache/nanochat"
 mkdir -p $NANOCHAT_BASE_DIR
 
-export RUST_BACKTRACE=1
+export RUST_BACKTRACE=full
 export PYTORCH_ALLOC_CONF=expandable_segments:True
 
 # Workaround for "Inconsistency detected by ld.so" error, often caused by LD_PRELOAD (e.g. tcmalloc)
