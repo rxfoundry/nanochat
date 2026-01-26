@@ -292,6 +292,7 @@ while True:
 
     # once in a while: evaluate the val bpb (all ranks participate)
     if args.eval_every > 0 and (last_step or step % args.eval_every == 0):
+        print0(f"Step {step:05d} | Validating bpb...")
         model.eval()
         val_loader = build_val_loader()
         eval_steps = args.eval_tokens // (args.device_batch_size * args.max_seq_len * ddp_world_size)
@@ -312,6 +313,7 @@ while True:
     # use the original uncompiled model because the inputs keep changing shape
     results = {}
     if args.core_metric_every > 0 and (last_step or (step > 0 and step % args.core_metric_every == 0)):
+        print0(f"Step {step:05d} | Estimating CORE metric...")
         model.eval()
         with autocast_ctx:
             results = evaluate_model(orig_model, tokenizer, device, max_per_task=args.core_metric_max_per_task)
@@ -327,6 +329,7 @@ while True:
     # once in a while: sample from the model (only on master process)
     # use the original uncompiled model because the inputs keep changing shape
     if args.sample_every > 0 and master_process and (last_step or (step > 0 and step % args.sample_every == 0)):
+        print0(f"Step {step:05d} | Sampling...")
         model.eval()
         prompts = [
             "The capital of France is",
@@ -347,6 +350,7 @@ while True:
 
     # save checkpoint: at the end of the run, or every save_every steps, except at the first step or the resume step
     if last_step or (step > 0 and step != args.resume_from_step and args.save_every > 0 and step % args.save_every == 0):
+        print0(f"Step {step:05d} | Saving checkpoint...")
         save_checkpoint(
             checkpoint_dir,
             step,
@@ -378,6 +382,7 @@ while True:
     # evaluate the gradient
     synchronize()
     t0 = time.time()
+    print0(f"Step {step:05d} | Evaluating microsteps in next batch")
     for micro_step in range(grad_accum_steps):
         with autocast_ctx:
             loss = model(x, y)
