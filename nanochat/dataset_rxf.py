@@ -58,7 +58,7 @@ def parquets_iter_batched(split, start=0, step=1):
     for filepath in parquet_paths:
         pf = pq.ParquetFile(filepath)
         for rg_idx in range(start, pf.num_row_groups, step):
-            rg = pf.read_row_group(rg_idx, columns=["text"], use_threads=False)
+            rg = pf.read_row_group(rg_idx, use_threads=False)
             texts = rg.column('text').to_pylist()
             yield texts
 # -----------------------------------------------------------------------------
