@@ -12,6 +12,8 @@ import argparse
 import requests
 import pandas as pd
 from multiprocessing import Pool
+
+from filelock import FileLock
 from huggingface_hub import hf_hub_download
 from fastparquet import ParquetFile
 
@@ -74,13 +76,21 @@ def download_single_file(index):
     # Construct the local filepath for this file and skip if it already exists
     filename = index_to_filename(index)
     filepath = os.path.join(DATA_DIR, filename)
+    lock_path = filepath + ".lock"
+
     if os.path.exists(filepath):
         print(f"Skipping {filepath} (already exists)")
         return True
 
-    print(f"Downloading {filename}...")
 
     try:
+        with FileLock(lock_path):
+            if os.path.exists(filepath):
+                print(f"Skipping {filepath} (already exists)")
+                return True
+
+            print(f"Downloading {filename}...")
+
         # Use hf_hub_download instead of pyarrow.fs
         # Parse the repo_id from BASE_URI: "hf://datasets/karpathy/fineweb-edu-100b-shuffle"
         repo_id = BASE_URI.replace("hf://datasets/", "")
