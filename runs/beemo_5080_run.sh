@@ -64,6 +64,8 @@ python -m nanochat.dataset_rxf -n 370 -w 4
 # train the tokenizer with vocab size 2**16 = 65536 on ~2B characters of data
 python -m scripts.tok_train --max-chars=2000000000 --vocab-size=65536
 # evaluate the tokenizer (report compression ratio etc.)
+rm ~/backups/nanochat/base_data/*
+cp ~/.cache/nanochat/base_data/* ~/backups/nanochat/base_data
 python -m scripts.tok_eval
 
 # -----------------------------------------------------------------------------
