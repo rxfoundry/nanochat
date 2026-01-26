@@ -22,18 +22,8 @@ logging.getLogger("httpx").setLevel(logging.ERROR)
 # -----------------------------------------------------------------------------
 # The specifics of the current pretraining dataset
 
-# The URI on the internet where the data is hosted and downloaded from on demand
+# The URI/URL on the internet where the data is hosted and downloaded from on demand
 BASE_URI = "hf://datasets/karpathy/fineweb-edu-100b-shuffle"
-MAX_SHARD = 1822 # the last datashard is shard_01822.parquet
-index_to_filename = lambda index: f"shard_{index:05d}.parquet" # format of the filenames
-base_dir = get_base_dir()
-DATA_DIR = os.path.join(base_dir, "base_data")
-os.makedirs(DATA_DIR, exist_ok=True)
-
-# -----------------------------------------------------------------------------
-# The specifics of the current pretraining dataset
-
-# The URL on the internet where the data is hosted and downloaded from on demand
 BASE_URL = "https://huggingface.co/datasets/karpathy/fineweb-edu-100b-shuffle/resolve/main"
 MAX_SHARD = 1822 # the last datashard is shard_01822.parquet
 index_to_filename = lambda index: f"shard_{index:05d}.parquet" # format of the filenames
@@ -42,6 +32,8 @@ DATA_DIR = os.path.join(base_dir, "base_data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
 # -----------------------------------------------------------------------------
+
+
 # These functions are useful utilities to other modules, can/should be imported
 
 def list_parquet_files(data_dir=None):
