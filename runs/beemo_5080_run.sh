@@ -15,6 +15,8 @@ export OMP_NUM_THREADS=1
 export NANOCHAT_BASE_DIR="$HOME/.cache/nanochat"
 mkdir -p $NANOCHAT_BASE_DIR
 
+export RUST_BACKTRACE=1
+
 # Workaround for "Inconsistency detected by ld.so" error, often caused by LD_PRELOAD (e.g. tcmalloc)
 unset LD_PRELOAD
 
@@ -66,7 +68,7 @@ cp ~/.cache/nanochat/base_data/* ~/backups/nanochat/base_data
 # python -m nanochat.dataset -n 370 &
 # DATASET_DOWNLOAD_PID=$!
 # train the tokenizer with vocab size 2**16 = 65536 on ~2B characters of data
-python -m scripts.tok_train --max-chars=2000000000 --vocab-size=65536
+python -m scripts.tok_train_rxf --max-chars=2000000000 --vocab-size=65536
 # evaluate the tokenizer (report compression ratio etc.)
 python -m scripts.tok_eval
 

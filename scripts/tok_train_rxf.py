@@ -8,7 +8,7 @@ import argparse
 import torch
 from nanochat.tokenizer import RustBPETokenizer
 from nanochat.common import get_base_dir
-from nanochat.dataset_rxf import parquets_iter_batched
+from nanochat.dataset import parquets_iter_batched
 
 # -----------------------------------------------------------------------------
 # Parse command line arguments
@@ -24,6 +24,7 @@ print(f"vocab_size: {args.vocab_size:,}")
 
 # -----------------------------------------------------------------------------
 # Text iterator
+
 def text_iterator():
     """
     1) Flatten the batches into a single iterator
@@ -63,11 +64,11 @@ def text_iterator():
                             break
                         except UnicodeEncodeError:
                             safe_cap -= 1
-
-            nchars += len(doc_text)
-            yield doc_text
-            if nchars > args.max_chars:
-                return
+            if len(doc_text) > 0:
+                nchars += len(doc_text)
+                yield doc_text
+                if nchars > args.max_chars:
+                    return
 
 text_iter = text_iterator()
 
