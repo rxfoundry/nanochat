@@ -111,7 +111,7 @@ curl -L -o $NANOCHAT_BASE_DIR/identity_conversations.jsonl https://karpathy-publ
 
 # run midtraining and eval the model
 python -m scripts.mid_train \
-    --depth=20 \
+    --depth=19 \
     --target-param-data-ratio=20 \
     --window-pattern=L \
     --device-batch-size=1 \
