@@ -11,8 +11,6 @@ If you are only on CPU/Macbook, you'll want to train a much much smaller LLM. Ex
 python -m scripts.base_train --depth=4 --max-seq-len=512 --device-batch-size=1 --eval-tokens=512 --core-metric-every=-1 --total-batch-size=512 --num-iterations=20
 """
 
-import os
-os.environ["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
 import argparse
 import time
 from contextlib import nullcontext

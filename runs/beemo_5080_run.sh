@@ -16,7 +16,7 @@ export NANOCHAT_BASE_DIR="$HOME/.cache/nanochat"
 mkdir -p $NANOCHAT_BASE_DIR
 
 export RUST_BACKTRACE=1
-export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+export PYTORCH_ALLOC_CONF=expandable_segments:True
 
 # Workaround for "Inconsistency detected by ld.so" error, often caused by LD_PRELOAD (e.g. tcmalloc)
 unset LD_PRELOAD
@@ -86,9 +86,9 @@ python -m scripts.tok_eval
 # echo "Waiting for dataset download to complete..."
 # wait $DATASET_DOWNLOAD_PID
 
-# pretrain the d20 model
+# pretrain the d19 model
 python -m scripts.base_train \
-    --depth=20 \
+    --depth=19 \
     --target-param-data-ratio=20 \
     --window-pattern=L \
     --device-batch-size=1 \
@@ -96,7 +96,7 @@ python -m scripts.base_train \
     --save-every=500 \
     --run=$WANDB_RUN
 
-# torchrun --standalone --nproc_per_node=$NPROC_PER_NODE -m scripts.base_train -- --depth=20 --target-param-data-ratio=20 --device-batch-size=1 --save-every=500 --window-pattern=L --run=$WANDB_RUN
+# torchrun --standalone --nproc_per_node=$NPROC_PER_NODE -m scripts.base_train -- --depth=19 --target-param-data-ratio=20 --device-batch-size=1 --save-every=500 --window-pattern=L --run=$WANDB_RUN
 # evaluate the model on a larger chunk of train/val data and draw some samples
 python -m scripts.base_loss
 # evaluate the model on CORE tasks
