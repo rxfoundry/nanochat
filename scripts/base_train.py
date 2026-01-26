@@ -10,7 +10,7 @@ torchrun --nproc_per_node=8 -m scripts.base_train.py
 If you are only on CPU/Macbook, you'll want to train a much much smaller LLM. Example:
 python -m scripts.base_train --depth=4 --max-seq-len=512 --device-batch-size=1 --eval-tokens=512 --core-metric-every=-1 --total-batch-size=512 --num-iterations=20
 """
-
+import os
 import argparse
 import time
 from contextlib import nullcontext
