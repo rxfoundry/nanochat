@@ -56,7 +56,7 @@ python -m nanochat.report reset
 # each data shard is ~250M chars
 # so we download 2e9 / 250e6 = 8 data shards at this point
 # each shard is ~100MB of text (compressed), so this is about ~800MB of data on disk
-python -m nanochat.dataset -n 370 -w 4
+python -m nanochat.dataset_rxf -n 370 -w 4
 rm -f ~/backups/nanochat/base_data/*.parquet
 mkdir ~/.cache/nanochat/base_data
 cp ~/.cache/nanochat/base_data/* ~/backups/nanochat/base_data

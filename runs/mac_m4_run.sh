@@ -24,7 +24,7 @@ if [ -z "$WANDB_RUN" ]; then
 fi
 
 # train tokenizer on ~2B characters (~34 seconds on my MacBook Pro M3 Max)
-python -m nanochat.dataset_rxf -n 370 -w 4
+python -m nanochat.dataset_rxf -n 165 -w 4
 
 rm ~/backups/nanochat/base_data/*
 cp ~/.cache/nanochat/base_data/* ~/backups/nanochat/base_data

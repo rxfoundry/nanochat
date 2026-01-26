@@ -10,12 +10,9 @@ For details of how the dataset was prepared, see `repackage_data_reference.py`.
 import os
 import argparse
 import requests
-import pandas as pd
+import pyarrow.parquet as pq
 from multiprocessing import Pool
-
-from filelock import FileLock
 from huggingface_hub import hf_hub_download
-from fastparquet import ParquetFile
 
 from nanochat.common import get_base_dir
 
@@ -27,6 +24,17 @@ logging.getLogger("httpx").setLevel(logging.ERROR)
 
 # The URI on the internet where the data is hosted and downloaded from on demand
 BASE_URI = "hf://datasets/karpathy/fineweb-edu-100b-shuffle"
+MAX_SHARD = 1822 # the last datashard is shard_01822.parquet
+index_to_filename = lambda index: f"shard_{index:05d}.parquet" # format of the filenames
+base_dir = get_base_dir()
+DATA_DIR = os.path.join(base_dir, "base_data")
+os.makedirs(DATA_DIR, exist_ok=True)
+
+# -----------------------------------------------------------------------------
+# The specifics of the current pretraining dataset
+
+# The URL on the internet where the data is hosted and downloaded from on demand
+BASE_URL = "https://huggingface.co/datasets/karpathy/fineweb-edu-100b-shuffle/resolve/main"
 MAX_SHARD = 1822 # the last datashard is shard_01822.parquet
 index_to_filename = lambda index: f"shard_{index:05d}.parquet" # format of the filenames
 base_dir = get_base_dir()
@@ -46,9 +54,6 @@ def list_parquet_files(data_dir=None):
     parquet_paths = [os.path.join(data_dir, f) for f in parquet_files]
     return parquet_paths
 
-def readonly_opener(path, mode='rb'):
-    return open(path, 'rb')
-
 def parquets_iter_batched(split, start=0, step=1):
     """
     Iterate through the dataset, in batches of underlying row_groups for efficiency.
@@ -59,16 +64,11 @@ def parquets_iter_batched(split, start=0, step=1):
     parquet_paths = list_parquet_files()
     parquet_paths = parquet_paths[:-1] if split == "train" else parquet_paths[-1:]
     for filepath in parquet_paths:
-        try:
-            pf = ParquetFile(filepath, open_with=readonly_opener)
-            row_groups = pf.iter_row_groups()
-            for rg in row_groups:
-                texts = rg['text']
-                yield texts
-        except Exception as e:
-            print(f"Error reading {filepath}: {e}")
-
-
+        pf = pq.ParquetFile(filepath)
+        for rg_idx in range(start, pf.num_row_groups, step):
+            rg = pf.read_row_group(rg_idx, columns=["text"], use_threads=False)
+            texts = rg.column('text').to_pylist()
+            yield texts
 # -----------------------------------------------------------------------------
 def download_single_file(index):
     """ Downloads a single file index, with some backoff """
@@ -82,15 +82,9 @@ def download_single_file(index):
         print(f"Skipping {filepath} (already exists)")
         return True
 
+    print(f"Downloading {filename}...")
 
     try:
-        with FileLock(lock_path):
-            if os.path.exists(filepath):
-                print(f"Skipping {filepath} (already exists)")
-                return True
-
-            print(f"Downloading {filename}...")
-
         # Use hf_hub_download instead of pyarrow.fs
         # Parse the repo_id from BASE_URI: "hf://datasets/karpathy/fineweb-edu-100b-shuffle"
         repo_id = BASE_URI.replace("hf://datasets/", "")
