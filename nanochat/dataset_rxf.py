@@ -82,11 +82,13 @@ def download_single_file(index):
         repo_id = BASE_URI.replace("hf://datasets/", "")
 
         # Download using hf_hub_download
+        # This automatically verifies checksums !!
         downloaded_path = hf_hub_download(
             repo_id=repo_id,
             filename=filename,
             repo_type="dataset",
-            local_dir=DATA_DIR
+            local_dir=DATA_DIR,
+            revision="main"
         )
 
         print(f"Successfully downloaded {filename}")
