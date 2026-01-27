@@ -10,7 +10,8 @@ For details of how the dataset was prepared, see `repackage_data_reference.py`.
 import os
 import argparse
 import requests
-import pyarrow.parquet as pq
+#import pyarrow.parquet as pq
+import fastparquet as pq
 from multiprocessing import Pool
 from huggingface_hub import hf_hub_download
 
@@ -57,10 +58,24 @@ def parquets_iter_batched(split, start=0, step=1):
     parquet_paths = parquet_paths[:-1] if split == "train" else parquet_paths[-1:]
     for filepath in parquet_paths:
         pf = pq.ParquetFile(filepath)
-        for rg_idx in range(start, pf.num_row_groups, step):
-            rg = pf.read_row_group(rg_idx, use_threads=False)
-            texts = rg.column('text').to_pylist()
+
+        # FastParquet doesn't have the same row group iteration as pyarrow
+        # So we'll read the file and simulate the row group behavior
+        df = pf.to_pandas(columns=['text'])
+        texts = df['text'].tolist()
+
+        # Since we can't iterate row groups, we need to simulate that behavior
+        # The original yields one batch per row group
+        # We'll just yield the entire file's data as one batch, applying DDP sharding
+        if start == 0 and step == 1:
+            # Single process - yield all texts
             yield texts
+        else:
+            # DDP - apply sharding and yield the sharded subset
+            sharded_texts = texts[start::step]
+            if sharded_texts:
+                yield sharded_texts
+
 # -----------------------------------------------------------------------------
 def download_single_file(index):
     """ Downloads a single file index, with some backoff """

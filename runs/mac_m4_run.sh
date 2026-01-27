@@ -29,13 +29,13 @@ python -m nanochat.dataset_rxf -n 165 -w 4
 rm ~/backups/nanochat/base_data/*
 cp ~/.cache/nanochat/base_data/* ~/backups/nanochat/base_data
 
-python -m scripts.tok_train --max-chars=2000000000 --vocab-size=65536
+python -m scripts.tok_train_rxf --max-chars=2000000000 --vocab-size=65536
 python -m scripts.tok_eval
 
 # train a small 4 layer model
 # I tuned this run to complete in about 30 minutes on my MacBook Pro M3 Max.
 # To get better results, try increasing num_iterations, or get other ideas from your favorite LLM.
-python -m scripts.base_train \
+python -m scripts.base_train_rxf \
     --depth=10 \
     --target-param-data-ratio=20 \
     --window-pattern=L \
