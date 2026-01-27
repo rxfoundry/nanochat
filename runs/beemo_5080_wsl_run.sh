@@ -87,7 +87,7 @@ python -m scripts.tok_eval
 # wait $DATASET_DOWNLOAD_PID
 
 # pretrain the d18 model
-python -m scripts.base_train \
+python -m scripts.base_train_rxf \
     --depth=18 \
     --target-param-data-ratio=20 \
     --window-pattern=L \
