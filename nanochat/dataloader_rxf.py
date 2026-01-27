@@ -72,31 +72,34 @@ def _document_batches(split, resume_state_dict, tokenizer_batch_size):
 
             while rg_idx < row_groups:
                 # Read specific row group using fastparquet + pandas
-                if hasattr(pf, 'row_groups') and len(pf.row_groups) > 1:
-                    # Read specific row group
-                    df = pd.read_parquet(filepath, engine='fastparquet')
+                try:
+                    if hasattr(pf, 'row_groups') and len(pf.row_groups) > 1:
+                        # Read specific row group
+                        df = pd.read_parquet(filepath, engine='fastparquet')
 
-                    # Calculate row group boundaries (approximate)
-                    total_rows = len(df)
-                    rows_per_group = total_rows // row_groups
-                    start_row = rg_idx * rows_per_group
+                        # Calculate row group boundaries (approximate)
+                        total_rows = len(df)
+                        rows_per_group = total_rows // row_groups
+                        start_row = rg_idx * rows_per_group
 
-                    if rg_idx == row_groups - 1:  # last row group gets remaining rows
-                        end_row = total_rows
+                        if rg_idx == row_groups - 1:  # last row group gets remaining rows
+                            end_row = total_rows
+                        else:
+                            end_row = (rg_idx + 1) * rows_per_group
+
+                        # Extract the row group data
+                        rg_df = df.iloc[start_row:end_row]
+                        batch = rg_df['text'].tolist()
                     else:
-                        end_row = (rg_idx + 1) * rows_per_group
+                        # Single row group case - read entire file
+                        df = pd.read_parquet(filepath, engine='fastparquet')
+                        batch = df['text'].tolist()
 
-                    # Extract the row group data
-                    rg_df = df.iloc[start_row:end_row]
-                    batch = rg_df['text'].tolist()
-                else:
-                    # Single row group case - read entire file
-                    df = pd.read_parquet(filepath, engine='fastparquet')
-                    batch = df['text'].tolist()
-
-                if batch:
-                    for i in range(0, len(batch), tokenizer_batch_size):
-                        yield batch[i:i + tokenizer_batch_size], (pq_idx, rg_idx, epoch)
+                    if batch:
+                        for i in range(0, len(batch), tokenizer_batch_size):
+                            yield batch[i:i + tokenizer_batch_size], (pq_idx, rg_idx, epoch)
+                except Exception as e:
+                    print(f"Error reading {filepath}: {e}")
 
                 rg_idx += ddp_world_size
             pq_idx += 1

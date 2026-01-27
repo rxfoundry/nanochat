@@ -59,10 +59,14 @@ def parquets_iter_batched(split, start=0, step=1):
     for filepath in parquet_paths:
         pf = pq.ParquetFile(filepath)
 
-        # FastParquet doesn't have the same row group iteration as pyarrow
-        # So we'll read the file and simulate the row group behavior
-        df = pf.to_pandas(columns=['text'])
-        texts = df['text'].tolist()
+        try:
+            # FastParquet doesn't have the same row group iteration as pyarrow
+            # So we'll read the file and simulate the row group behavior
+            df = pf.to_pandas(columns=['text'])
+            texts = df['text'].tolist()
+        except Exception as e:
+            print(f"Error reading {filepath}: {e}")
+            continue
 
         # Since we can't iterate row groups, we need to simulate that behavior
         # The original yields one batch per row group
