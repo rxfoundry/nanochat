@@ -22,11 +22,8 @@ Fallback to (1) if you have very limited data AND long documents.
 """
 
 import torch
+import fastparquet
 import pandas as pd
-from fastparquet import ParquetFile
-
-# import pyarrow.parquet as pq
-
 from nanochat.common import get_dist_info
 from nanochat.dataset_rxf import list_parquet_files
 
@@ -55,8 +52,12 @@ def _document_batches(split, resume_state_dict, tokenizer_batch_size):
         pq_idx = resume_pq_idx if first_pass else 0
         while pq_idx < len(parquet_paths):
             filepath = parquet_paths[pq_idx]
-            pf = ParquetFile(filepath)
-            row_groups = pf.info["row_groups"]
+
+            pf = fastparquet.ParquetFile(filepath)
+
+            # Get row group information from fastparquet
+            row_groups = len(pf.row_groups) if hasattr(pf, 'row_groups') else 1
+
             # Start from resume point if resuming on same file, otherwise from DDP rank
             if first_pass and (resume_rg_idx is not None) and (pq_idx == resume_pq_idx):
                 base_idx = resume_rg_idx // ddp_world_size
@@ -68,12 +69,35 @@ def _document_batches(split, resume_state_dict, tokenizer_batch_size):
                 resume_rg_idx = None  # only do this once
             else:
                 rg_idx = ddp_rank
+
             while rg_idx < row_groups:
-                rg = pf.row_groups[rg_idx]
-                batch = rg['text']
+                # Read specific row group using fastparquet + pandas
+                if hasattr(pf, 'row_groups') and len(pf.row_groups) > 1:
+                    # Read specific row group
+                    df = pd.read_parquet(filepath, engine='fastparquet')
+
+                    # Calculate row group boundaries (approximate)
+                    total_rows = len(df)
+                    rows_per_group = total_rows // row_groups
+                    start_row = rg_idx * rows_per_group
+
+                    if rg_idx == row_groups - 1:  # last row group gets remaining rows
+                        end_row = total_rows
+                    else:
+                        end_row = (rg_idx + 1) * rows_per_group
+
+                    # Extract the row group data
+                    rg_df = df.iloc[start_row:end_row]
+                    batch = rg_df['text'].tolist()
+                else:
+                    # Single row group case - read entire file
+                    df = pd.read_parquet(filepath, engine='fastparquet')
+                    batch = df['text'].tolist()
+
                 if batch:
                     for i in range(0, len(batch), tokenizer_batch_size):
-                        yield batch[i:i+tokenizer_batch_size], (pq_idx, rg_idx, epoch)
+                        yield batch[i:i + tokenizer_batch_size], (pq_idx, rg_idx, epoch)
+
                 rg_idx += ddp_world_size
             pq_idx += 1
         first_pass = False
