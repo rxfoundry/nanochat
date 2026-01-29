@@ -59,17 +59,17 @@ python -m nanochat.report reset
 # each data shard is ~250M chars
 # so we download 2e9 / 250e6 = 8 data shards at this point
 # each shard is ~100MB of text (compressed), so this is about ~800MB of data on disk
-python -m nanochat.dataset_rxf -n 370 -w 4
-rm -f ~/backups/nanochat/base_data/*.parquet
-mkdir ~/.cache/nanochat/base_data
-cp ~/.cache/nanochat/base_data/* ~/backups/nanochat/base_data
+#python -m nanochat.dataset_rxf -n 370 -w 4
+#rm -f ~/backups/nanochat/base_data/*.parquet
+#mkdir ~/.cache/nanochat/base_data
+#cp ~/.cache/nanochat/base_data/* ~/backups/nanochat/base_data
 
 # Immediately also kick off downloading more shards in the background while tokenizer trains
 # See comment below for why 370 is the right number here
 # python -m nanochat.dataset -n 370 &
 # DATASET_DOWNLOAD_PID=$!
 # train the tokenizer with vocab size 2**16 = 65536 on ~2B characters of data
-python -m scripts.tok_train_rxf --max-chars=2000000000 --vocab-size=65536
+#python -m scripts.tok_train_rxf --max-chars=2000000000 --vocab-size=65536
 # evaluate the tokenizer (report compression ratio etc.)
 python -m scripts.tok_eval
 
@@ -93,7 +93,8 @@ python -m scripts.base_train_rxf \
     --window-pattern=L \
     --device-batch-size=1 \
     --eval-every=100 \
-    --save-every=500 \
+    --save-every=250 \
+    --sample-every=500 \
     --run=$WANDB_RUN
 
 # torchrun --standalone --nproc_per_node=$NPROC_PER_NODE -m scripts.base_train -- --depth=19 --target-param-data-ratio=20 --device-batch-size=1 --save-every=500 --window-pattern=L --run=$WANDB_RUN
@@ -117,6 +118,7 @@ python -m scripts.mid_train \
     --device-batch-size=1 \
     --eval-every=100 \
     --save-every=500 \
+    --sample-every=500 \
     --run=$WANDB_RUN
 
 # torchrun --standalone --nproc_per_node=$NPROC_PER_NODE -m scripts.mid_train -- --depth=20 --target-param-data-ratio=20 --device-batch-size=1 --save-every=500 --window-pattern=L --run=$WANDB_RUN
