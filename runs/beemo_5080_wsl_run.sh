@@ -96,6 +96,7 @@ python -m scripts.base_train_rxf \
     --save-every=250 \
     --sample-every=500 \
     --core-metric-every=-1 \
+    --resume-from-step=2000 \
     --run=$WANDB_RUN
 
 # torchrun --standalone --nproc_per_node=$NPROC_PER_NODE -m scripts.base_train -- --depth=19 --target-param-data-ratio=20 --device-batch-size=1 --save-every=500 --window-pattern=L --run=$WANDB_RUN
