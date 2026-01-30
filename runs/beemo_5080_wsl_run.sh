@@ -88,7 +88,7 @@ python -m scripts.tok_eval
 
 # pretrain the d18 model
 python -m scripts.base_train_rxf \
-    --depth=17 \
+    --depth=19 \
     --target-param-data-ratio=20 \
     --window-pattern=L \
     --device-batch-size=1 \
@@ -96,7 +96,6 @@ python -m scripts.base_train_rxf \
     --save-every=250 \
     --sample-every=500 \
     --core-metric-every=-1 \
-    --resume-from-step=2000 \
     --run=$WANDB_RUN
 
 # torchrun --standalone --nproc_per_node=$NPROC_PER_NODE -m scripts.base_train -- --depth=19 --target-param-data-ratio=20 --device-batch-size=1 --save-every=500 --window-pattern=L --run=$WANDB_RUN
@@ -114,13 +113,14 @@ curl -L -o $NANOCHAT_BASE_DIR/identity_conversations.jsonl https://karpathy-publ
 
 # run midtraining and eval the model
 python -m scripts.mid_train \
-    --depth=17 \
+    --depth=19 \
     --target-param-data-ratio=20 \
     --window-pattern=L \
     --device-batch-size=1 \
     --eval-every=100 \
     --save-every=500 \
     --sample-every=500 \
+    --core-metric-every=-1 \
     --run=$WANDB_RUN
 
 # torchrun --standalone --nproc_per_node=$NPROC_PER_NODE -m scripts.mid_train -- --depth=20 --target-param-data-ratio=20 --device-batch-size=1 --save-every=500 --window-pattern=L --run=$WANDB_RUN
