@@ -10,6 +10,7 @@ For details of how the dataset was prepared, see `repackage_data_reference.py`.
 import os
 import argparse
 import requests
+import shutil
 #import pyarrow.parquet as pq
 import fastparquet as pq
 from multiprocessing import Pool
@@ -123,7 +124,14 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--num-files", type=int, default=-1, help="Number of shards to download (default: -1), -1 = disable")
     parser.add_argument("-w", "--num-workers", type=int, default=4, help="Number of parallel download workers (default: 4)")
     args = parser.parse_args()
+    
+    print(f"Copying NLM parquet files")
+    print()
 
+    shutil.copytree("build/subprojects/data-loaders/data/nlm/nlm_data", DATA_DIR, dirs_exist_ok = True)
+    print(f"Conents of nlm_data copied to ' {DATA_DIR}' successfully")
+
+    """
     num = MAX_SHARD + 1 if args.num_files == -1 else min(args.num_files, MAX_SHARD + 1)
     ids_to_download = list(range(num))
     print(f"Downloading {len(ids_to_download)} shards using {args.num_workers} workers...")
@@ -135,3 +143,4 @@ if __name__ == "__main__":
     # Report results
     successful = sum(1 for success in results if success)
     print(f"Done! Downloaded: {successful}/{len(ids_to_download)} shards to {DATA_DIR}")
+    """
